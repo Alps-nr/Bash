@@ -1,0 +1,45 @@
+#!/bin/bash
+
+read -p "Enter the Repository clone URI : " Repo
+read -p "Enter the Branch of the above given repo: " Branch
+diffdir=$(echo "$(date '+%d%b%H%M')$Repo")
+read -p "Enter the From Commit HASH ID: " FC
+read -p "Enter the To Commit HASH ID: " TC
+
+#NOTE : UPDATE the LIVE UPDATE directory according to your need in order to run this script safely
+livdir=/path/to/liveupdate/directory
+logfile=/path/to/logfile
+livurl=https://example.com
+
+echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LIVE UPDATE STARTED~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" >> $logfile
+
+cd $LIVEUPDATEDIR
+git clone -b $Branch $Repo
+mkdir $diffdir
+cd $Repo
+FC=$(git rev-parse $FC)
+TC=$(git rev-parse $TC)
+git diff $FC $TC --name-only -z | xargs -0 -I '{}' cp -pv --parents '{}' ../$diffdir
+
+echo -e "O==========================O\n|$(date '+ %x | %r ')|\nO==========================O\n" >> $logfile
+echo -e "Repository   : $Repo" >> $logfile
+echo -e "Branch       : $Branch" >> $logfile
+echo -e "From Commit  : $FC" >> $logfile
+echo -e "To Commit    : $TC\n" >> $logfile
+
+cd ..
+tree $diffdir | tee -a $logfile
+echo -e "\e[35m$(ls -l $diffdir)\e[0m"
+sudo tar -cvzf $diffdir.tar.gz $diffdir
+sudo mv $diffdir.tar.gz $livdir
+sudo rm -rf $diffdir $Repo
+
+#NOTE : UPDATE the URL according to the server in order to download the LIVE UPDATE file in the server
+echo -e "\e[1;31;47mFind the URL of the Live UPDATE file\e[0m \n \n\e[1;4;34m$livurl/live_update/$diffdir.tar.gz\e[0m \n \n "
+
+read -p "Enter the confirmation to delete the Live UPDATE file(Yes|Y|y): " RMC
+if [[ $RMC == Yes ]] || [[ $RMC == Y ]] || [[ $RMC == y ]];
+then
+echo -e "\e[31m$(sudo rm -rvf $livdir/$diffdir.tar.gz)\e[0m"
+fi
+echo -e "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~LIVEUPDATE COMPLETED~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" >> $logfile
